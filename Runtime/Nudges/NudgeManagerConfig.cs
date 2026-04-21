@@ -4,7 +4,7 @@ using UnityEngine;
 namespace ToolkitEngine.Dialogue
 {
 	[CreateAssetMenu(menuName = "Toolkit/Config/NudgeManager Config")]
-	public class NudgeManagerConfig : ScriptableObject, IInstantiableSubsystemConfig
+	public class NudgeManagerConfig : ScriptableObject
     {
 		#region Fields
 
@@ -21,7 +21,6 @@ namespace ToolkitEngine.Dialogue
 
 		#region Properties
 
-		public System.Type subsystemType => typeof(NudgeManager);
 		public DialogueRunnerControl template => m_template;
 		public DialogueType dialogueType => m_dialogueType;
 

@@ -1,4 +1,6 @@
+using NaughtyAttributes;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.Serialization;
 using Yarn.Unity;
 
@@ -33,6 +35,16 @@ namespace ToolkitEngine.Dialogue
 
 		#endregion
 
+		#region Events
+
+		[SerializeField, Foldout("Events")]
+		private UnityEvent<DialogueEventArgs> m_onDialogueStarted;
+
+		[SerializeField, Foldout("Events")]
+		private UnityEvent<DialogueEventArgs> m_onDialogueCompleted;
+
+		#endregion
+
 		#region Properties
 
 		public DialogueRegistration registration => m_registration;
@@ -44,7 +56,7 @@ namespace ToolkitEngine.Dialogue
 		{
 			get
 			{
-				return DialogueManager.CastInstance.TryGetFirstDialogueRunner(registration, out var dialogueRunner)
+				return DialogueManager.TryGetFirstDialogueRunner(registration, out var dialogueRunner)
 					? dialogueRunner
 					: null;
 			}
@@ -56,15 +68,32 @@ namespace ToolkitEngine.Dialogue
 
 		private void OnEnable()
 		{
-			DialogueManager.CastInstance.Register(this);
+			DialogueManager.Register(this);
+			DialogueManager.DialogueStarted += DialogueManager_DialogueStarted;
+			DialogueManager.DialogueCompleted += DialogueManager_DialogueCompleted;
 		}
 
 		private void OnDisable()
 		{
-			if (DialogueManager.Exists)
-			{
-				DialogueManager.CastInstance.Unregister(this);
-			}
+			DialogueManager.DialogueStarted -= DialogueManager_DialogueStarted;
+			DialogueManager.DialogueCompleted -= DialogueManager_DialogueCompleted;
+			DialogueManager.Unregister(this);
+		}
+
+		private void DialogueManager_DialogueStarted(DialogueEventArgs e)
+		{
+			if (!m_registration.IsValid(e.type))
+				return;
+
+			m_onDialogueStarted?.Invoke(e);
+		}
+
+		private void DialogueManager_DialogueCompleted(DialogueEventArgs e)
+		{
+			if (!m_registration.IsValid(e.type))
+				return;
+
+			m_onDialogueCompleted?.Invoke(e);
 		}
 
 		public void Stop()

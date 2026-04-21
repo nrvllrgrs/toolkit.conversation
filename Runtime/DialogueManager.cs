@@ -6,6 +6,10 @@ using UnityEngine;
 using UnityEngine.Assertions;
 using Yarn.Unity;
 
+#if USE_UNITY_LOCALIZATION
+using Yarn.Unity.UnityLocalization;
+#endif
+
 namespace ToolkitEngine.Dialogue
 {
 	public class DialogueManager : ConfigurableSubsystem<DialogueManager, DialogueManagerConfig>, IInstantiableSubsystem
@@ -33,11 +37,11 @@ namespace ToolkitEngine.Dialogue
 
 		#region Events
 
-		public event EventHandler<DialogueEventArgs> DialogueStarted;
-		public event EventHandler<DialogueEventArgs> DialogueCompleted;
-		public event EventHandler<DialogueEventArgs> NodeStarted;
-		public event EventHandler<DialogueEventArgs> NodeCompleted;
-		public event EventHandler<DialogueEventArgs> Command;
+		public static event Action<DialogueEventArgs> DialogueStarted;
+		public static event Action<DialogueEventArgs> DialogueCompleted;
+		public static event Action<DialogueEventArgs> NodeStarted;
+		public static event Action<DialogueEventArgs> NodeCompleted;
+		public static event Action<DialogueEventArgs> Command;
 
 		#endregion
 
@@ -47,7 +51,7 @@ namespace ToolkitEngine.Dialogue
 		/// Gets a value that indicates if the dialogue is actively
 		/// running.
 		/// </summary>
-		public bool isAnyDialogueRunning => m_runtimeMap.Any(x => x.Value.isDialogueRunning);
+		public static bool isAnyDialogueRunning => CastInstance.m_runtimeMap.Any(x => x.Value.isDialogueRunning);
 
 #if UNITY_EDITOR
 		private static Transform container
@@ -81,11 +85,13 @@ namespace ToolkitEngine.Dialogue
 			int categoryPriority = Config.categories.Length;
 			foreach (var category in Config.categories)
 			{
+				//Debug.Log($"Creating {category.name} RuntimeDialogueCategory...");
 				foreach (var priority in category.priorities)
 				{
 					if (priority == null)
 						continue;
 
+					//Debug.Log($"Adding {priority.name} to {category.name}...");
 					m_priorityToCategoryMap.Add(priority, category);
 				}
 
@@ -131,14 +137,14 @@ namespace ToolkitEngine.Dialogue
 
 		#region Control Methods
 
-		public bool IsDialogueCategoryRunning(DialogueCategory category)
+		public static bool IsDialogueCategoryRunning(DialogueCategory category)
 		{
-			return m_runtimeMap.TryGetValue(category, out var runtimeCategory)
+			return CastInstance.m_runtimeMap.TryGetValue(category, out var runtimeCategory)
 				? runtimeCategory.isDialogueRunning
 				: false;
 		}
 
-		public bool Play(DialogueType dialogueType, YarnProject project, string startNode, Action<GameObject> onSpawned = null)
+		public static bool Play(DialogueType dialogueType, YarnProject project, string startNode, Action<GameObject> onSpawned = null)
 		{
 			if (!TryGetRuntimeDialogueCategory(dialogueType, out var runtimeCategory))
 				return false;
@@ -147,7 +153,7 @@ namespace ToolkitEngine.Dialogue
 			return false;
 		}
 
-		public async YarnTask<bool> Play(DialogueRunnerControl control, string startNode)
+		public static async YarnTask<bool> Play(DialogueRunnerControl control, string startNode)
 		{
 			if (!TryGetRuntimeDialogueCategory(control, out var runtimeCategory))
 				return false;
@@ -155,7 +161,7 @@ namespace ToolkitEngine.Dialogue
 			return await runtimeCategory.Play(control, startNode);
 		}
 
-		public bool Enqueue(DialogueType dialogueType, YarnProject project, string startNode, Action<GameObject> onSpawned = null)
+		public static bool Enqueue(DialogueType dialogueType, YarnProject project, string startNode, Action<GameObject> onSpawned = null)
 		{
 			if (!TryGetRuntimeDialogueCategory(dialogueType, out var runtimeCategory))
 				return false;
@@ -164,7 +170,7 @@ namespace ToolkitEngine.Dialogue
 			return false;
 		}
 
-		public void Enqueue(DialogueRunnerControl control, string startNode)
+		public static void Enqueue(DialogueRunnerControl control, string startNode)
 		{
 			if (!TryGetRuntimeDialogueCategory(control, out var runtimeCategory))
 				return;
@@ -172,7 +178,7 @@ namespace ToolkitEngine.Dialogue
 			runtimeCategory.Enqueue(control, startNode);
 		}
 
-		public void Dequeue(DialogueRunnerControl control, string startNode)
+		public static void Dequeue(DialogueRunnerControl control, string startNode)
 		{
 			if (!TryGetRuntimeDialogueCategory(control, out var runtimeCategory))
 				return;
@@ -180,7 +186,7 @@ namespace ToolkitEngine.Dialogue
 			runtimeCategory.Dequeue(control);
 		}
 
-		public void ClearQueue(DialogueType dialogueType)
+		public static void ClearQueue(DialogueType dialogueType)
 		{
 			if (!TryGetRuntimeDialogueCategory(dialogueType, out var runtimeCategory))
 				return;
@@ -188,7 +194,7 @@ namespace ToolkitEngine.Dialogue
 			runtimeCategory.ClearQueue();
 		}
 
-		public void ClearQueue(DialogueRunnerControl control)
+		public static void ClearQueue(DialogueRunnerControl control)
 		{
 			if (!TryGetRuntimeDialogueCategory(control, out var runtimeCategory))
 				return;
@@ -196,10 +202,10 @@ namespace ToolkitEngine.Dialogue
 			runtimeCategory.ClearQueue();
 		}
 
-		public DialogueType[] GetDialogueTypes() => m_priorityToCategoryMap.Keys.ToArray();
-		public YarnProject[] GetYarnProjects() => Config.projects;
+		public static DialogueType[] GetDialogueTypes() => CastInstance.m_priorityToCategoryMap.Keys.ToArray();
+		public static YarnProject[] GetYarnProjects() => Config.projects;
 
-		public bool TryGetDialogueCategory(DialogueType type, out DialogueCategory category)
+		public static bool TryGetDialogueCategory(DialogueType type, out DialogueCategory category)
 		{
 			if (TryGetRuntimeDialogueCategory(type, out var runtimeCategory))
 			{
@@ -211,14 +217,16 @@ namespace ToolkitEngine.Dialogue
 			return false;
 		}
 
-		private bool TryGetRuntimeDialogueCategory(DialogueRunnerControl control, out RuntimeDialogueCategory runtimeCategory)
+		private static bool TryGetRuntimeDialogueCategory(DialogueRunnerControl control, out RuntimeDialogueCategory runtimeCategory)
 		{
 			return TryGetRuntimeDialogueCategory(control?.dialogueType, out runtimeCategory);
 		}
 
-		private bool TryGetRuntimeDialogueCategory(DialogueType type, out RuntimeDialogueCategory runtimeCategory)
+		private static bool TryGetRuntimeDialogueCategory(DialogueType type, out RuntimeDialogueCategory runtimeCategory)
 		{
 			runtimeCategory = null;
+			if (!Exists)
+				return false;
 
 			if (type == null)
 			{
@@ -226,8 +234,8 @@ namespace ToolkitEngine.Dialogue
 				return false;
 			}
 
-			if (!m_priorityToCategoryMap.TryGetValue(type, out var category)
-				|| !m_runtimeMap.TryGetValue(category, out runtimeCategory))
+			if (!CastInstance.m_priorityToCategoryMap.TryGetValue(type, out var category)
+				|| !CastInstance.m_runtimeMap.TryGetValue(category, out runtimeCategory))
 			{
 				Debug.LogErrorFormat("DialogueType {0} does not exist in config! Cannot play dialogue.", type.name);
 				return false;
@@ -236,21 +244,21 @@ namespace ToolkitEngine.Dialogue
 			return true;
 		}
 
-		public int GetCategoryPriority(DialogueCategory category)
+		public static int GetCategoryPriority(DialogueCategory category)
 		{
-			return m_runtimeMap.TryGetValue(category, out var runtimeCategory)
+			return CastInstance.m_runtimeMap.TryGetValue(category, out var runtimeCategory)
 				? runtimeCategory.priority
 				: -1;
 		}
 
-		public int GetPriority(DialogueType dialogueType)
+		public static int GetPriority(DialogueType dialogueType)
 		{
 			return TryGetRuntimeDialogueCategory(dialogueType, out var runtimeCategory)
 				? runtimeCategory.dialogueCategory.GetPriority(dialogueType)
 				: -1;
 		}
 
-		public float GetQueueAge(DialogueRunnerControl control)
+		public static float GetQueueAge(DialogueRunnerControl control)
 		{
 			return TryGetRuntimeDialogueCategory(control, out var runtimeCategory)
 				? runtimeCategory.GetQueueAge(control)
@@ -261,49 +269,52 @@ namespace ToolkitEngine.Dialogue
 
 		#region Settings Methods
 
-		public void Register(DialogueRunnerSettings settings)
+		public static void Register(DialogueRunnerSettings settings)
 		{
 			switch (settings.registration.mode)
 			{
 				case DialogueRegistration.Mode.Category:
-					if (!m_settingsByCategory.ContainsKey(settings.registration.dialogueCategory))
+					if (!CastInstance.m_settingsByCategory.ContainsKey(settings.registration.dialogueCategory))
 					{
-						m_settingsByCategory.Add(settings.registration.dialogueCategory, settings);
+						CastInstance.m_settingsByCategory.Add(settings.registration.dialogueCategory, settings);
 					}
 					else
 					{
-						m_settingsByCategory[settings.registration.dialogueCategory] = settings;
+						CastInstance.m_settingsByCategory[settings.registration.dialogueCategory] = settings;
 					}
 					break;
 
 				case DialogueRegistration.Mode.Type:
-					if (!m_settingsByType.ContainsKey(settings.registration.dialogueType))
+					if (!CastInstance.m_settingsByType.ContainsKey(settings.registration.dialogueType))
 					{
-						m_settingsByType.Add(settings.registration.dialogueType, settings);
+						CastInstance.m_settingsByType.Add(settings.registration.dialogueType, settings);
 					}
 					else
 					{
-						m_settingsByType[settings.registration.dialogueType] = settings;
+						CastInstance.m_settingsByType[settings.registration.dialogueType] = settings;
 					}
 					break;
 			}
 		}
 
-		public void Unregister(DialogueRunnerSettings settings)
+		public static void Unregister(DialogueRunnerSettings settings)
 		{
+			if (!Exists)
+				return;
+
 			switch (settings.registration.mode)
 			{
 				case DialogueRegistration.Mode.Category:
-					m_settingsByCategory.Remove(settings.registration.dialogueCategory);
+					CastInstance.m_settingsByCategory.Remove(settings.registration.dialogueCategory);
 					break;
 
 				case DialogueRegistration.Mode.Type:
-					m_settingsByType.Remove(settings.registration.dialogueType);
+					CastInstance.m_settingsByType.Remove(settings.registration.dialogueType);
 					break;
 			}
 		}
 
-		public bool TryGetFirstDialogueRunner(DialogueRegistration registration, out DialogueRunner runner)
+		public static bool TryGetFirstDialogueRunner(DialogueRegistration registration, out DialogueRunner runner)
 		{
 			runner = null;
 
@@ -315,7 +326,7 @@ namespace ToolkitEngine.Dialogue
 			{
 				case DialogueRegistration.Mode.Category:
 					if (registration.dialogueCategory != null
-						&& m_runtimeMap.TryGetValue(registration.dialogueCategory, out runtimeCategory))
+						&& CastInstance.m_runtimeMap.TryGetValue(registration.dialogueCategory, out runtimeCategory))
 					{ }
 					break;
 
@@ -334,7 +345,7 @@ namespace ToolkitEngine.Dialogue
 			return false;
 		}
 
-		public bool TryGetDialogueRunnerSettings(DialogueRegistration registration, out DialogueRunnerSettings settings)
+		public static bool TryGetDialogueRunnerSettings(DialogueRegistration registration, out DialogueRunnerSettings settings)
 		{
 			settings = null;
 
@@ -352,21 +363,21 @@ namespace ToolkitEngine.Dialogue
 			return false;
 		}
 
-		public bool TryGetDialogueRunnerSettings(DialogueCategory category, out DialogueRunnerSettings settings)
+		public static bool TryGetDialogueRunnerSettings(DialogueCategory category, out DialogueRunnerSettings settings)
 		{
-			return m_settingsByCategory.TryGetValue(category, out settings);
+			return CastInstance.m_settingsByCategory.TryGetValue(category, out settings);
 		}
 
-		public bool TryGetDialogueRunnerSettings(DialogueType type, out DialogueRunnerSettings settings)
+		public static bool TryGetDialogueRunnerSettings(DialogueType type, out DialogueRunnerSettings settings)
 		{
-			if (m_settingsByType.TryGetValue(type, out settings))
+			if (CastInstance.m_settingsByType.TryGetValue(type, out settings))
 				return true;
 
 			return TryGetDialogueCategory(type, out var category)
 				&& TryGetDialogueRunnerSettings(category, out settings);
 		}
 
-		public bool ReplicateSettings(DialogueRunnerControl control, bool appendDialogueViews, bool keepVariableStorage)
+		public static bool ReplicateSettings(DialogueRunnerControl control, bool appendDialogueViews, bool keepVariableStorage)
 		{
 			if (TryGetDialogueRunnerSettings(control.dialogueType, out var settings) && settings != null)
 			{
@@ -420,9 +431,9 @@ namespace ToolkitEngine.Dialogue
 		internal static void UpdateLineProvider(DialogueRunnerControl control)
 		{
 #if USE_UNITY_LOCALIZATION
-			if (control.dialogueRunner.yarnProject.localizationType == LocalizationType.Unity
-				&& control.dialogueRunner.lineProvider is UnityLocalisedLineProvider localizedLineProvider
-				&& (CastInstance.Config.tableMap?.TryGetTables(control.dialogueRunner.yarnProject, out var tables) ?? false))
+			if (control.dialogueRunner.YarnProject.localizationType == LocalizationType.Unity
+				&& control.dialogueRunner.LineProvider is UnityLocalisedLineProvider localizedLineProvider
+				&& (Config.tableMap?.TryGetTables(control.dialogueRunner.YarnProject, out var tables) ?? false))
 			{
 				ReflectionUtil.TrySetFieldValue(localizedLineProvider, "stringsTable", tables.stringTable);
 				ReflectionUtil.TrySetFieldValue(localizedLineProvider, "assetTable", tables.audioTable);
@@ -430,7 +441,7 @@ namespace ToolkitEngine.Dialogue
 #endif
 		}
 
-		private void DialogueSpawned(GameObject obj, params object[] args)
+		private static void DialogueSpawned(GameObject obj, params object[] args)
 		{
 			UnityEngine.Object.DontDestroyOnLoad(obj);
 
@@ -448,12 +459,12 @@ namespace ToolkitEngine.Dialogue
 
 			// Map parameters to spawned object so it can be referenced
 			var key = new Tuple<DialogueType, YarnProject, string>(control.dialogueType, control.dialogueRunner.YarnProject, startNode);
-			if (m_spawnMap.TryGetValue(key, out var prevControl) && prevControl == null)
+			if (CastInstance.m_spawnMap.TryGetValue(key, out var prevControl) && prevControl == null)
 			{
-				m_spawnMap.Remove(key);
+				CastInstance.m_spawnMap.Remove(key);
 			}
 
-			m_spawnMap.Add(key, control);
+			CastInstance.m_spawnMap.Add(key, control);
 
 			UpdateLineProvider(control);
 
@@ -469,7 +480,7 @@ namespace ToolkitEngine.Dialogue
 			var runtimeCategory = args[0] as RuntimeDialogueCategory;
 			if ((bool)args[4])
 			{
-				runtimeCategory.Play(control, startNode);
+				_ = runtimeCategory.Play(control, startNode);
 			}
 			else
 			{
@@ -477,7 +488,7 @@ namespace ToolkitEngine.Dialogue
 			}
 		}
 
-		private void Instance_DialogueLateCompleted(object sender, DialogueEventArgs e)
+		private static void Instance_DialogueLateCompleted(object sender, DialogueEventArgs e)
 		{
 			if (e?.control == null)
 				return;
@@ -486,10 +497,10 @@ namespace ToolkitEngine.Dialogue
 			PoolItem.Destroy(e.control.gameObject);
 		}
 
-		public DialogueRunnerControl GetDialogueRunnerControl(DialogueType dialogueType, YarnProject project, string startNode)
+		public static DialogueRunnerControl GetDialogueRunnerControl(DialogueType dialogueType, YarnProject project, string startNode)
 		{
 			var key = new Tuple<DialogueType, YarnProject, string>(dialogueType, project, startNode);
-			return m_spawnMap.TryGetValue(key, out var control)
+			return CastInstance.m_spawnMap.TryGetValue(key, out var control)
 				? control
 				: null;
 		}
@@ -498,101 +509,101 @@ namespace ToolkitEngine.Dialogue
 
 		#region Speaker Methods
 
-		public void Register(DialogueSpeaker speaker)
+		public static void Register(DialogueSpeaker speaker)
 		{
 			Assert.IsNotNull(speaker);
 			Assert.IsNotNull(speaker.speakerType);
 
-			if (!m_speakerMap.TryGetValue(speaker.speakerType, out var set))
+			if (!CastInstance.m_speakerMap.TryGetValue(speaker.speakerType, out var set))
 			{
 				set = new();
-				m_speakerMap.Add(speaker.speakerType, set);
+				CastInstance.m_speakerMap.Add(speaker.speakerType, set);
 			}
 
 			set.Add(speaker);
 
 			// Need to map characterName to speakerType
 			// This can be permanent
-			if (!m_characterNameToSpeakerTypeMap.ContainsKey(speaker.speakerType.name))
+			if (!CastInstance.m_characterNameToSpeakerTypeMap.ContainsKey(speaker.speakerType.name))
 			{
-				m_characterNameToSpeakerTypeMap.Add(speaker.speakerType.name, speaker.speakerType);
+				CastInstance.m_characterNameToSpeakerTypeMap.Add(speaker.speakerType.name, speaker.speakerType);
 			}
 		}
 
-		public void Unregister(DialogueSpeaker speaker)
+		public static void Unregister(DialogueSpeaker speaker)
 		{
 			Assert.IsNotNull(speaker);
 			Assert.IsNotNull(speaker.speakerType);
 
-			if (!m_speakerMap.TryGetValue(speaker.speakerType, out var set))
+			if (!CastInstance.m_speakerMap.TryGetValue(speaker.speakerType, out var set))
 				return;
 
 			set.Remove(speaker);
 		}
 
-		public bool TryGetDialogueSpeakers(DialogueSpeakerType speakerType, out HashSet<DialogueSpeaker> speakers)
+		public static bool TryGetDialogueSpeakers(DialogueSpeakerType speakerType, out HashSet<DialogueSpeaker> speakers)
 		{
 			speakers = null;
-			return speakerType != null && m_speakerMap.TryGetValue(speakerType, out speakers);
+			return speakerType != null && CastInstance.m_speakerMap.TryGetValue(speakerType, out speakers);
 		}
 
-		public bool TryGetDialogueSpeakerTypeByCharacterName(string characterName, out DialogueSpeakerType speakerType)
+		public static bool TryGetDialogueSpeakerTypeByCharacterName(string characterName, out DialogueSpeakerType speakerType)
 		{
 			speakerType = null;
-			return characterName != null && m_characterNameToSpeakerTypeMap.TryGetValue(characterName, out speakerType);
+			return characterName != null && CastInstance.m_characterNameToSpeakerTypeMap.TryGetValue(characterName, out speakerType);
 		}
 
-		public bool TryGetDialogueSpeakersByCharacterName(string characterName, out HashSet<DialogueSpeaker> speakers)
+		public static bool TryGetDialogueSpeakersByCharacterName(string characterName, out HashSet<DialogueSpeaker> speakers)
 		{
 			speakers = null;
 			return TryGetDialogueSpeakerTypeByCharacterName(characterName, out var speakerType)
 				&& TryGetDialogueSpeakers(speakerType, out speakers);
 		}
 
-		public bool IsAnyDialogueSpeakerRunning() => m_activeSpeakerNames.Any();
+		public static bool IsAnyDialogueSpeakerRunning() => CastInstance.m_activeSpeakerNames.Any();
 
-		internal void ActivateSpeaker(string characterName)
+		internal static void ActivateSpeaker(string characterName)
 		{
 			if (string.IsNullOrWhiteSpace(characterName))
 				return;
 
-			m_activeSpeakerNames.Add(characterName);
+			CastInstance.m_activeSpeakerNames.Add(characterName);
 		}
-		internal void DeactivateSpeaker(string characterName)
+		internal static void DeactivateSpeaker(string characterName)
 		{
 			if (string.IsNullOrWhiteSpace(characterName))
 				return;
 
-			m_activeSpeakerNames.Remove(characterName);
+			CastInstance.m_activeSpeakerNames.Remove(characterName);
 		}
 
 		#endregion
 
 		#region Callbacks
 
-		private void RuntimeCategory_DialogueStart(object sender, DialogueEventArgs e)
+		private static void RuntimeCategory_DialogueStart(object sender, DialogueEventArgs e)
 		{
-			DialogueStarted?.Invoke(null, e);
+			DialogueStarted?.Invoke(e);
 		}
 
-		private void RuntimeCategory_DialogueComplete(object sender, DialogueEventArgs e)
+		private static void RuntimeCategory_DialogueComplete(object sender, DialogueEventArgs e)
 		{
-			DialogueCompleted?.Invoke(null, e);
+			DialogueCompleted?.Invoke(e);
 		}
 
-		private void RuntimeCategory_NodeStarted(object sender, DialogueEventArgs e)
+		private static void RuntimeCategory_NodeStarted(object sender, DialogueEventArgs e)
 		{
-			NodeStarted?.Invoke(null, e);
+			NodeStarted?.Invoke(e);
 		}
 
-		private void RuntimeCategory_NodeCompleted(object sender, DialogueEventArgs e)
+		private static void RuntimeCategory_NodeCompleted(object sender, DialogueEventArgs e)
 		{
-			NodeCompleted?.Invoke(null, e);
+			NodeCompleted?.Invoke(e);
 		}
 
-		private void RuntimeCategory_Command(object sender, DialogueEventArgs e)
+		private static void RuntimeCategory_Command(object sender, DialogueEventArgs e)
 		{
-			Command?.Invoke(null, e);
+			Command?.Invoke(e);
 		}
 
 		#endregion
@@ -646,6 +657,9 @@ namespace ToolkitEngine.Dialogue
 
 			internal async YarnTask<bool> Play(DialogueRunnerControl control, string startNode)
 			{
+				// Remove all "null" active runners
+				m_activeRunnerControls.Clean();
+
 				// Under allowed simultaneous runners
 				if (dialogueCategory.infiniteSimultaneous || m_activeRunnerControls.Count < dialogueCategory.maxSimultaneous)
 				{
@@ -823,7 +837,7 @@ namespace ToolkitEngine.Dialogue
 					var next = dialogueCategory.Next(m_queue.Keys);
 					if (next != null && m_queue.TryGetValue(next, out var tuple))
 					{
-						await YarnTask.Delay(TimeSpan.FromSeconds(CastInstance.Config.delayBetweenDequeues));
+						await YarnTask.Delay(TimeSpan.FromSeconds(Config.delayBetweenDequeues));
 
 						m_queue.Remove(next);
 						m_interrupted = false;

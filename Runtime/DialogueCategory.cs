@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using ToolkitEngine.Scoring;
+using System;
 
 namespace ToolkitEngine.Dialogue
 {
@@ -9,6 +10,9 @@ namespace ToolkitEngine.Dialogue
 	public class DialogueCategory : ScriptableObject
 	{
 		#region Fields
+
+		[SerializeField, HideInInspector]
+		private string m_id = Guid.NewGuid().ToString();
 
 		[SerializeField, Nested]
 		private List<DialogueType> m_priorities = new();
@@ -102,6 +106,16 @@ namespace ToolkitEngine.Dialogue
 			}
 			return selected;
 		}
+
+		public bool Equals(DialogueCategory other)
+		{
+			return other != null
+				&& m_id == other.m_id;
+		}
+
+		public override bool Equals(object other) => Equals(other as DialogueCategory);
+
+		public override int GetHashCode() => m_id.GetHashCode();
 
 		#endregion
 	}

@@ -11,12 +11,12 @@ namespace ToolkitEngine.Dialogue.VisualScripting
 
 		protected override void StartListeningToManager()
 		{
-			CinematicManager.CastInstance.SkippableChanged += InvokeTrigger;
+			CinematicManager.SkippableChanged += InvokeTrigger;
 		}
 
 		protected override void StopListeningToManager()
 		{
-			CinematicManager.CastInstance.SkippableChanged -= InvokeTrigger;
+			CinematicManager.SkippableChanged -= InvokeTrigger;
 		}
 
 		#endregion

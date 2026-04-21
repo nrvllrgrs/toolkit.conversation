@@ -27,7 +27,7 @@ namespace ToolkitEngine.Dialogue.VisualScripting
 
 		private ControlOutput Trigger(Flow flow)
 		{
-			CinematicManager.CastInstance.Skip();
+			CinematicManager.Skip();
 			return exit;
 		}
 

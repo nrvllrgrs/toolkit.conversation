@@ -12,7 +12,7 @@ namespace ToolkitEngine.Dialogue
 		[SerializeField]
 		private List<PlayableDirector> m_directors = new();
 
-		private HashSet<TimelinePresenter> m_timelineViews = new();
+		private HashSet<TimelineView> m_timelineViews = new();
 		private PlayableDirector m_playingDirector = null;
 
 		#endregion
@@ -65,7 +65,7 @@ namespace ToolkitEngine.Dialogue
 			m_timelineViews.Clear();
 			foreach (var view in dialogueRunner.DialoguePresenters)
 			{
-				if (view is not TimelinePresenter timelineView)
+				if (view is not TimelineView timelineView)
 					continue;
 
 				timelineView.StartDialogue(this);

@@ -8,7 +8,7 @@ namespace ToolkitEngine.Dialogue.Scoring
 	{
 		#region Properties
 
-		public float max => DialogueManager.CastInstance.Config.categories.Length;
+		public float max => DialogueManager.Config.categories.Length;
 
 		#endregion
 
@@ -17,9 +17,9 @@ namespace ToolkitEngine.Dialogue.Scoring
 		protected override float CalculateNormalizedScore(GameObject actor, GameObject target, Vector3 position)
 		{
 			if (actor.TryGetComponent(out DialogueRunnerControl control)
-				&& DialogueManager.CastInstance.TryGetDialogueCategory(control.dialogueType, out var category))
+				&& DialogueManager.TryGetDialogueCategory(control.dialogueType, out var category))
 			{
-				int priority = DialogueManager.CastInstance.GetCategoryPriority(category);
+				int priority = DialogueManager.GetCategoryPriority(category);
 				if (priority > 0)
 				{
 					return MathUtil.GetPercent(priority, 0f, max);

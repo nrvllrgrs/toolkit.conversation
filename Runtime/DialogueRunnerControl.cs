@@ -187,7 +187,7 @@ namespace ToolkitEngine.Dialogue
 			if (string.IsNullOrWhiteSpace(nodeName) || !m_dialogueRunner.NodeExists(nodeName))
 				return false;
 
-			return await DialogueManager.CastInstance.Play(this, nodeName);
+			return await DialogueManager.Play(this, nodeName);
 		}
 
 		public async YarnTask<bool> Play(YarnNode node)
@@ -203,9 +203,11 @@ namespace ToolkitEngine.Dialogue
 		{
 			if (m_replicateSettings)
 			{
-				DialogueManager.CastInstance.ReplicateSettings(this, m_appendDialogueViews, m_keepVariableStorage);
+				DialogueManager.ReplicateSettings(this, m_appendDialogueViews, m_keepVariableStorage);
 			}
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 			m_dialogueRunner.StartDialogue(startNode);
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 		}
 
 		[ContextMenu("Enqueue")]
@@ -220,7 +222,7 @@ namespace ToolkitEngine.Dialogue
 			if (!m_dialogueRunner.NodeExists(startNode))
 				return;
 
-			DialogueManager.CastInstance.Enqueue(this, startNode);
+			DialogueManager.Enqueue(this, startNode);
 		}
 
 		[ContextMenu("Dequeue")]
@@ -235,13 +237,13 @@ namespace ToolkitEngine.Dialogue
 			if (!m_dialogueRunner.NodeExists(startNode))
 				return;
 
-			DialogueManager.CastInstance.Dequeue(this, startNode);
+			DialogueManager.Dequeue(this, startNode);
 		}
 
 		[ContextMenu("Clear Queue")]
 		public void ClearQueue()
 		{
-			DialogueManager.CastInstance.ClearQueue(this);
+			DialogueManager.ClearQueue(this);
 		}
 
 		[ContextMenu("Stop")]
@@ -256,7 +258,9 @@ namespace ToolkitEngine.Dialogue
 				return;
 
 			m_isSkipping = skipping;
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 			m_dialogueRunner.Stop();
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 		}
 
 		public void SetStartNode(YarnProject project, string nodeName)

@@ -1,3 +1,4 @@
+using NaughtyAttributes;
 using UnityEngine;
 
 #if USE_UNITY_LOCALIZATION
@@ -22,14 +23,22 @@ namespace ToolkitEngine.Dialogue
 		[SerializeField]
 		private Color m_color = Color.white;
 
+		[Space]
+
 		[SerializeField]
 		private AnimationSet m_animationSet;
 
 		[SerializeField]
 		private PortraitSet m_portraitSet;
 
-#if UNITY_EDITOR
 		[SerializeField]
+		private GibberishType m_gibberishType;
+
+#if UNITY_EDITOR
+
+		[Header("Editor Only")]
+
+		[SerializeField, Label("TTS Voice")]
 		private TTSVoice m_ttsVoice;
 #endif
 
@@ -60,6 +69,7 @@ namespace ToolkitEngine.Dialogue
 		public Color color => m_color;
 		public AnimationSet animationSet => m_animationSet;
 		public PortraitSet portraitSet => m_portraitSet;
+		public GibberishType gibberishType => m_gibberishType;
 
 #if UNITY_EDITOR
 		public TTSVoice ttsVoice => m_ttsVoice;

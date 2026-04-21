@@ -10,12 +10,12 @@ namespace ToolkitEngine.Dialogue.VisualScripting
 
 		protected override void StartListeningToManager()
 		{
-			DialogueManager.CastInstance.NodeStarted += InvokeTrigger;
+			DialogueManager.NodeStarted += InvokeTrigger;
 		}
 
 		protected override void StopListeningToManager()
 		{
-			DialogueManager.CastInstance.NodeStarted -= InvokeTrigger;
+			DialogueManager.NodeStarted -= InvokeTrigger;
 		}
 
 		protected override string GetFilterValue(DialogueEventArgs args) => args.nodeName;

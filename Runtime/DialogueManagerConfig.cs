@@ -5,7 +5,7 @@ using Yarn.Unity;
 namespace ToolkitEngine.Dialogue
 {
 	[CreateAssetMenu(menuName = "Toolkit/Config/DialogueManager Config")]
-	public class DialogueManagerConfig : ScriptableObject, IInstantiableSubsystemConfig
+	public class DialogueManagerConfig : ScriptableObject
     {
 		#region Fields
 
@@ -40,7 +40,6 @@ namespace ToolkitEngine.Dialogue
 
 		#region Properties
 
-		public System.Type subsystemType => typeof(DialogueManager);
 		public DialogueCategory[] categories => m_categories.ToArray();
 		public YarnProject[] projects => m_projects.ToArray();
 		public DialogueSpeakerType[] speakers => m_speakers.ToArray();

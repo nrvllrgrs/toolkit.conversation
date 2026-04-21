@@ -20,6 +20,7 @@ namespace ToolkitEngine.Dialogue
 
 		public YarnProject project => m_project;
 		public string name { get => m_name; internal set => m_name = value; }
+		public bool isDefined => m_project != null && m_project.NodeExists(name);
 
 		#endregion
 

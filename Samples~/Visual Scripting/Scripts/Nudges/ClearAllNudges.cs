@@ -27,7 +27,7 @@ namespace ToolkitEngine.Dialogue.VisualScripting
 
 		private ControlOutput Enter(Flow flow)
 		{
-			NudgeManager.CastInstance.ClearAll();
+			NudgeManager.ClearAll();
 			return exit;
 		}
 

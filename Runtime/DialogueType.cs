@@ -20,6 +20,9 @@ namespace ToolkitEngine.Dialogue
 
 		#region Fields
 
+		[SerializeField, HideInInspector]
+		private string m_id = Guid.NewGuid().ToString();
+
 		[SerializeField, Tooltip("Specifies whether incoming DialogueType can interrupt active dialogue with other priority.")]
 		private InterruptRule m_interruptPriority;
 
@@ -36,6 +39,20 @@ namespace ToolkitEngine.Dialogue
 		public InterruptRule interruptPriority => m_interruptPriority;
 		public bool enqueueIfBlocked => m_enqueueIfBlocked;
 		public bool autoClearQueue => m_autoClearQueue;
+
+		#endregion
+
+		#region Methods
+
+		public bool Equals(DialogueType other)
+		{
+			return other != null
+				&& m_id == other.m_id;
+		}
+
+		public override bool Equals(object other) => Equals(other as DialogueType);
+
+		public override int GetHashCode() => m_id.GetHashCode();
 
 		#endregion
 	}

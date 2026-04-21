@@ -79,9 +79,9 @@ namespace ToolkitEditor.Dialogue
 #if USE_UNITY_LOCALIZATION
 				if (importer.UseUnityLocalisationSystem)
 				{
-					s_stringTableCollections.Add(importer.unityLocalisationStringTableCollection);
+					s_stringTableCollections.Add(importer.UnityLocalisationStringTableCollection);
 
-					var guid = AssetDatabase.FindAssets($"t:AssetTableCollection {importer.unityLocalisationStringTableCollection}_VO")
+					var guid = AssetDatabase.FindAssets($"t:AssetTableCollection {importer.UnityLocalisationStringTableCollection}_VO")
 						.FirstOrDefault();
 					if (guid != null)
 					{
@@ -126,7 +126,9 @@ namespace ToolkitEditor.Dialogue
 								.Where(x => x != null)
 								.FirstOrDefault();
 							yarnEntry.stringInTable = !string.IsNullOrWhiteSpace(record?.Value);
-							yarnEntry.audioInTable = YarnEditorUtil.GetPreviewClip(yarnEntry.project, yarnEntry.entry, locale.Identifier.Code) != null;
+
+							var previewClip = await YarnEditorUtil.GetPreviewClip(yarnEntry.project, yarnEntry.entry, locale.Identifier.Code);
+							yarnEntry.audioInTable = previewClip != null;
 						}
 #endif
 					}

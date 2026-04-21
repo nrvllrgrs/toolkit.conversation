@@ -114,7 +114,7 @@ namespace ToolkitEngine.Dialogue.VisualScripting
 
 		protected DialogueRunnerControl GetDialogueRunnerControl(Flow flow)
 		{
-			return DialogueManager.CastInstance.GetDialogueRunnerControl(
+			return DialogueManager.GetDialogueRunnerControl(
 				flow.GetValue<DialogueType>(dialogueType),
 				flow.GetValue<YarnProject>(yarnProject),
 				flow.GetValue<string>(startNode));

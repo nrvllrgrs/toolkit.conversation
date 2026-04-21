@@ -103,14 +103,14 @@ namespace ToolkitEngine.Dialogue
 
 				if (!string.IsNullOrWhiteSpace(m_speakingCharacterName))
 				{
-					DialogueManager.CastInstance.DeactivateSpeaker(m_speakingCharacterName);
+					DialogueManager.DeactivateSpeaker(m_speakingCharacterName);
 				}
 
 				m_speakingCharacterName = value;
 
 				if (!string.IsNullOrWhiteSpace(m_speakingCharacterName))
 				{
-					DialogueManager.CastInstance.ActivateSpeaker(m_speakingCharacterName);
+					DialogueManager.ActivateSpeaker(m_speakingCharacterName);
 				}
 			}
 		}
@@ -318,7 +318,7 @@ namespace ToolkitEngine.Dialogue
 					Play(localSpeaker.audioSource, voiceOverClip);
 				}
 				// Fallback to registered speakers in DialogueManager
-				else if (DialogueManager.CastInstance.TryGetDialogueSpeakersByCharacterName(dialogueLine.CharacterName, out var speakers))
+				else if (DialogueManager.TryGetDialogueSpeakersByCharacterName(dialogueLine.CharacterName, out var speakers))
 				{
 					foreach (var speaker in speakers)
 					{

@@ -2,7 +2,10 @@ using UnityEditor;
 using ToolkitEngine.Dialogue;
 using Yarn.Unity;
 using UnityEngine;
+
+#if USE_UNITY_LOCALIZATION
 using Yarn.Unity.UnityLocalization;
+#endif
 
 namespace ToolkitEditor.Dialogue
 {
@@ -118,7 +121,7 @@ namespace ToolkitEditor.Dialogue
 
 #if USE_UNITY_LOCALIZATION
 						case LocalizationType.Unity:
-							var localizedLineProvider = m_dialogueRunner.lineProvider as UnityLocalisedLineProvider;
+							var localizedLineProvider = m_dialogueRunner.LineProvider as UnityLocalisedLineProvider;
 							if (localizedLineProvider == null)
 							{
 								localizedLineProvider = m_dialogueRunner.GetComponent<UnityLocalisedLineProvider>();
@@ -130,7 +133,7 @@ namespace ToolkitEditor.Dialogue
 								m_lineProvider.objectReferenceValue = localizedLineProvider;
 							}
 
-							if (DialogueManager.CastInstance.Config.tableMap?.TryGetTables(project, out var tables) ?? false)
+							if (DialogueManager.Config.tableMap?.TryGetTables(project, out var tables) ?? false)
 							{
 								ReflectionUtil.TrySetFieldValue(localizedLineProvider, "stringsTable", tables.stringTable);
 								ReflectionUtil.TrySetFieldValue(localizedLineProvider, "assetTable", tables.audioTable);

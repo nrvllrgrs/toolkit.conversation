@@ -6,6 +6,7 @@ using Yarn.Unity;
 
 namespace ToolkitEngine.Dialogue
 {
+	[SubsystemDependency(typeof(DialogueManager))]
 	public class NudgeManager : ConfigurableSubsystem<NudgeManager, NudgeManagerConfig>, IInstantiableSubsystem
 	{
 		#region Fields
@@ -28,33 +29,33 @@ namespace ToolkitEngine.Dialogue
 
 		#region Events
 
-		public event EventHandler<bool> PauseChanged;
+		public static event Action<bool> PauseChanged;
 
 		#endregion
 
 		#region Properties
 
-		public bool paused
+		public static bool paused
 		{
-			get => m_paused || activeData == null;
+			get => CastInstance.m_paused || activeData == null;
 			private set
 			{
 				// No change, skip
-				if (m_paused == value)
+				if (CastInstance.m_paused == value)
 					return;
 
-				m_paused = value;
-				PauseChanged?.Invoke(this, value);
+				CastInstance.m_paused = value;
+				PauseChanged?.Invoke(value);
 			}
 		}
 
-		private NudgeData activeData
+		private static NudgeData activeData
 		{
-			get => m_activeData;
+			get => CastInstance.m_activeData;
 			set
 			{
 				// No change, skip
-				if (Equals(m_activeData, value))
+				if (Equals(CastInstance.m_activeData, value))
 					return;
 
 				if (runner == null)
@@ -67,54 +68,54 @@ namespace ToolkitEngine.Dialogue
 				// Needs to occur before changing runner project
 				if (runner.IsDialogueRunning)
 				{
-					runner.Stop();
+					runner.Stop().Forget();
 				}
 
-				m_activeData = value;
+				CastInstance.m_activeData = value;
 
 				if (value != null)
 				{
 					runner.SetProject(value.project);
-					m_remainingTime = value.nudgeType.delayTime;
+					CastInstance.m_remainingTime = value.nudgeType.delayTime;
 
-					if (!string.IsNullOrWhiteSpace(m_activeData.nudgeType.indexVarName))
+					if (!string.IsNullOrWhiteSpace(CastInstance.m_activeData.nudgeType.indexVarName))
 					{
-						runner.VariableStorage.SetValue(m_activeData.nudgeType.indexVarName, 0);
+						runner.VariableStorage.SetValue(CastInstance.m_activeData.nudgeType.indexVarName, 0);
 					}
 				}
 				else
 				{
 					runner.SetProject(null);
-					m_remainingTime = float.PositiveInfinity;
+					CastInstance.m_remainingTime = float.PositiveInfinity;
 				}
 			}
 		}
 
-		protected DialogueRunner runner
+		protected static DialogueRunner runner
 		{
 			get
 			{
-				if (m_runner == null)
+				if (CastInstance.m_runner == null)
 				{
-					m_runner = m_control?.GetComponent<DialogueRunner>();
+					CastInstance.m_runner = CastInstance.m_control?.GetComponent<DialogueRunner>();
 				}
-				return m_runner;
+				return CastInstance.m_runner;
 			}
 		}
 
-		protected DialogueRunnerControl control
+		protected static DialogueRunnerControl control
 		{
 			get
 			{
-				if (m_control == null)
+				if (CastInstance.m_control == null)
 				{
-					m_control = m_control?.GetComponent<DialogueRunnerControl>();
-					if (m_control != null)
+					CastInstance.m_control = CastInstance.m_control?.GetComponent<DialogueRunnerControl>();
+					if (CastInstance.m_control != null)
 					{
-						m_control.Set(runner, Config.dialogueType);
+						CastInstance.m_control.Set(runner, Config.dialogueType);
 					}
 				}
-				return m_control;
+				return CastInstance.m_control;
 			}
 		}
 
@@ -127,8 +128,8 @@ namespace ToolkitEngine.Dialogue
 			base.Initialize();
 
 			// Pause when any dialogue starts; unpause when dialogue complete
-			DialogueManager.CastInstance.DialogueStarted += DialogueManager_DialogueStart;
-			DialogueManager.CastInstance.DialogueCompleted += DialogueManager_DialogueComplete;
+			DialogueManager.DialogueStarted += DialogueManager_DialogueStart;
+			DialogueManager.DialogueCompleted += DialogueManager_DialogueComplete;
 			LifecycleSubsystem.Register(this, LifecycleSubsystem.Phase.Update);
 		}
 
@@ -139,8 +140,8 @@ namespace ToolkitEngine.Dialogue
 			LifecycleSubsystem.Unregister(this, LifecycleSubsystem.Phase.Update);
 			if (DialogueManager.Exists)
 			{
-				DialogueManager.CastInstance.DialogueStarted -= DialogueManager_DialogueStart;
-				DialogueManager.CastInstance.DialogueCompleted -= DialogueManager_DialogueComplete;
+				DialogueManager.DialogueStarted -= DialogueManager_DialogueStart;
+				DialogueManager.DialogueCompleted -= DialogueManager_DialogueComplete;
 			}
 		}
 
@@ -165,7 +166,7 @@ namespace ToolkitEngine.Dialogue
 
 		#region Nudge Methods
 
-		public void Set(NudgeType nudgeType, YarnProject project, string startNode = "Start", bool playImmediately = false)
+		public static void Set(NudgeType nudgeType, YarnProject project, string startNode = "Start", bool playImmediately = false)
 		{
 			var data = new NudgeData()
 			{
@@ -175,17 +176,17 @@ namespace ToolkitEngine.Dialogue
 				priority = Config.GetPriority(nudgeType)
 			};
 
-			if (!m_map.ContainsKey(nudgeType))
+			if (!CastInstance.m_map.ContainsKey(nudgeType))
 			{
-				m_map.Add(nudgeType, data);
+				CastInstance.m_map.Add(nudgeType, data);
 			}
 			else
 			{
-				m_map[nudgeType] = data;
+				CastInstance.m_map[nudgeType] = data;
 			}
 
 			// Current data has higher priority, skip
-			if (m_activeData != null && m_activeData.priority > data.priority)
+			if (CastInstance.m_activeData != null && CastInstance.m_activeData.priority > data.priority)
 				return;
 
 			activeData = data;
@@ -193,7 +194,7 @@ namespace ToolkitEngine.Dialogue
 			// Automatically clear other nudges, if defined by NudgeType
 			if (nudgeType.autoClear)
 			{
-				m_map.Clear();
+				CastInstance.m_map.Clear();
 			}
 
 			if (playImmediately && !paused)
@@ -202,18 +203,18 @@ namespace ToolkitEngine.Dialogue
 			}
 		}
 
-		public void Clear(NudgeType nudgeType)
+		public static void Clear(NudgeType nudgeType)
 		{
-			if (!m_map.ContainsKey(nudgeType))
+			if (!CastInstance.m_map.ContainsKey(nudgeType))
 				return;
 
 			// Remove data from map
-			m_map.Remove(nudgeType);
+			CastInstance.m_map.Remove(nudgeType);
 
-			if (m_map.Count > 0)
+			if (CastInstance.m_map.Count > 0)
 			{
 				// Set data with highest priority
-				activeData = m_map.Values.OrderByDescending(x => x.priority).First();
+				activeData = CastInstance.m_map.Values.OrderByDescending(x => x.priority).First();
 			}
 			else
 			{
@@ -222,32 +223,32 @@ namespace ToolkitEngine.Dialogue
 			}
 		}
 
-		public void ClearAll()
+		public static void ClearAll()
 		{
-			m_map.Clear();
+			CastInstance.m_map.Clear();
 			activeData = null;
 		}
 
 		/// <summary>
 		/// Force active nudge to play, ignoring timer
 		/// </summary>
-		public void Play()
+		public static void Play()
 		{
 			if (control != null)
 			{
-				control.Play(m_activeData.startNode);
+				control.Play(CastInstance.m_activeData.startNode).Forget();
 			}
 			else
 			{
-				runner.StartDialogue(m_activeData.startNode);
+				runner.StartDialogue(CastInstance.m_activeData.startNode).Forget();
 			}
-			m_remainingTime = m_activeData.nudgeType.delayTime;
+			CastInstance.m_remainingTime = CastInstance.m_activeData.nudgeType.delayTime;
 		}
 
-		public void ResetTimer()
+		public static void ResetTimer()
 		{
-			m_remainingTime = m_activeData != null
-				? m_activeData.nudgeType.delayTime
+			CastInstance.m_remainingTime = CastInstance.m_activeData != null
+				? CastInstance.m_activeData.nudgeType.delayTime
 				: float.PositiveInfinity;
 		}
 
@@ -255,22 +256,22 @@ namespace ToolkitEngine.Dialogue
 
 		#region Control Methods
 
-		public void Pause(object source)
+		public static void Pause(object source)
 		{
-			if (m_blockers.Add(source))
+			if (CastInstance.m_blockers.Add(source))
 			{
 				paused = true;
 			}
 		}
 
-		public void Unpause(object source)
+		public static void Unpause(object source)
 		{
-			if (m_blockers.Remove(source))
+			if (CastInstance.m_blockers.Remove(source))
 			{
-				paused = m_blockers.Count > 0;
+				paused = CastInstance.m_blockers.Count > 0;
 				if (!paused)
 				{
-					m_remainingTime = Mathf.Max(m_remainingTime, m_activeData.nudgeType.minDelayTime);
+					CastInstance.m_remainingTime = Mathf.Max(CastInstance.m_remainingTime, CastInstance.m_activeData.nudgeType.minDelayTime);
 				}
 			}
 		}
@@ -285,14 +286,14 @@ namespace ToolkitEngine.Dialogue
 
 		#region Callbacks
 
-		private void DialogueManager_DialogueStart(object sender, DialogueEventArgs e)
+		private void DialogueManager_DialogueStart(DialogueEventArgs e)
 		{
-			Pause(sender);
+			Pause(null);
 		}
 
-		private void DialogueManager_DialogueComplete(object sender, DialogueEventArgs e)
+		private void DialogueManager_DialogueComplete(DialogueEventArgs e)
 		{
-			Unpause(sender);
+			Unpause(null);
 		}
 
 		#endregion

@@ -29,7 +29,7 @@ namespace ToolkitEngine.Dialogue.VisualScripting
 
 			skippable = ValueOutput(nameof(skippable), (flow) =>
 			{
-				return CinematicManager.CastInstance.skippable;
+				return CinematicManager.skippable;
 			});
 		}
 

@@ -12,7 +12,7 @@ namespace ToolkitEngine.Dialogue.Scoring
 		{
 			if (actor.TryGetComponent(out DialogueRunnerControl control))
 			{
-				int priority = DialogueManager.CastInstance.GetPriority(control.dialogueType);
+				int priority = DialogueManager.GetPriority(control.dialogueType);
 				if (priority > 0)
 				{
 					return MathUtil.GetPercent(priority, 0f, GetMax(control.dialogueType));
@@ -23,7 +23,7 @@ namespace ToolkitEngine.Dialogue.Scoring
 
 		private float GetMax(DialogueType dialogueType)
 		{
-			return DialogueManager.CastInstance.TryGetDialogueCategory(dialogueType, out var category)
+			return DialogueManager.TryGetDialogueCategory(dialogueType, out var category)
 				? category.priorities.Length
 				: 0f;
 		}

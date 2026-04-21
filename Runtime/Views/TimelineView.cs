@@ -1,8 +1,7 @@
 using System;
-using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using Yarn.Unity;
-using Yarn.Unity.Legacy;
 
 namespace ToolkitEngine.Dialogue
 {
@@ -10,17 +9,12 @@ namespace ToolkitEngine.Dialogue
 	/// A Dialogue View that presents lines of dialogue, using Unity UI
 	/// elements.
 	/// </summary>
-	public class TimelineView : DialogueViewBase
+	public class TimelineView : DialoguePresenterBase
 	{
 		#region Fields
 
 		[SerializeField]
-		private DialogueViewBase[] m_dialogueViews;
-
-		/// <summary>
-		/// The current <see cref="LocalizedLine"/> that this line view is processing.
-		/// </summary>
-		private LocalizedLine m_currentLine;
+		private DialoguePresenterBase[] m_presenters;
 
 		/// <summary>
 		/// Indicates whether dialogue view is waiting for timeline signal
@@ -31,9 +25,6 @@ namespace ToolkitEngine.Dialogue
 		/// Indicates whether waiting for signal is skipped due to interruption
 		/// </summary>
 		private bool m_skipWaiting = false;
-
-		private ActionInfo m_dismissal = new();
-		private ActionInfo m_runLine = new();
 
 		private TimelineRunnerControl m_timelineRunnerControl = null;
 
@@ -46,89 +37,53 @@ namespace ToolkitEngine.Dialogue
 			m_timelineRunnerControl = dialogueRunnerControl; 
 		}
 
-		private IEnumerator ProcessInternal(ActionInfo info, Action<DialogueViewBase> viewAction, Action onCompleted)
+		public override async YarnTask RunLineAsync(LocalizedLine localisedLine, LineCancellationToken token)
 		{
-			info.count = 0;
-			foreach (var view in m_dialogueViews)
-			{
-				if (view == null)
-					continue;
-
-				++info.count;
-				viewAction.Invoke(view);
-			}
-
-			yield return new WaitUntil(() => info.count == 0);
-			onCompleted?.Invoke();
-		}
-
-		/// <inheritdoc/>
-		public override void DismissLine(DialogueRunner dialogueRunner, Action onDismissalComplete)
-		{
-			m_currentLine = null;
-			StartCoroutine(
-				ProcessInternal(
-					m_dismissal,
-					(view) => view.DismissLine(dialogueRunner, ViewDismissalComplete),
-					onDismissalComplete));
-		}
-
-		private void ViewDismissalComplete()
-		{
-			--m_dismissal.count;
-		}
-
-		/// <inheritdoc/>
-		public override void InterruptLine(DialogueRunner dialogueRunner, LocalizedLine dialogueLine, Action onInterruptLineFinished)
-		{
-			m_currentLine = dialogueLine;
-
-			// Cancel all coroutines that we're currently running. This will
-			// stop the RunLineInternal coroutine, if it's running.
-			StopAllCoroutines();
-
-			foreach (var view in m_dialogueViews)
-			{
-				if (view == null)
-					continue;
-
-				view.InterruptLine(dialogueRunner, dialogueLine, () => { });
-			}
-
-			onInterruptLineFinished();
-		}
-
-		/// <inheritdoc/>
-		public override void RunLine(DialogueRunner dialogueRunner, LocalizedLine dialogueLine, Action onDialogueLineFinished)
-		{
-			// Stop any coroutines currently running on this line view (for
-			// example, any other RunLine that might be running)
-			StopAllCoroutines();
-
-			// Begin running the line as a coroutine.
-			StartCoroutine(RunLineInternal(dialogueRunner, dialogueLine, onDialogueLineFinished));
-		}
-
-		private IEnumerator RunLineInternal(DialogueRunner dialogueRunner, LocalizedLine dialogueLine, Action onDialogueLineFinished)
-		{
-			m_currentLine = dialogueLine;
-
 			// Need to wait for signal from Timeline before displaying line
 			m_waitingForSignal = !m_skipWaiting;
 			m_skipWaiting = false;
 
-			yield return new WaitWhile(() => m_waitingForSignal);
+			await YarnTask.WaitUntil(() => m_waitingForSignal);
 
-			StartCoroutine(
-				ProcessInternal(
-					m_runLine,
-					(view) => view.RunLine(dialogueRunner, dialogueLine, ViewDialogueLineFinished),
-					onDialogueLineFinished));
-		}
+			var pendingTasks = new HashSet<YarnTask>();
+			foreach (var presenter in m_presenters)
+			{
+				if (presenter == null || !presenter.enabled)
+					continue;
 
-		private void ViewDialogueLineFinished()
-		{
-			--m_runLine.count;
+				async YarnTask RunLineAndInvokeCompletion(DialoguePresenterBase view, LocalizedLine line, LineCancellationToken token)
+				{
+					try
+					{
+						// Run the line and wait for it to finish
+						await view.RunLineAsync(localisedLine, token);
+					}
+					catch (OperationCanceledException)
+					{
+						// The line presenter cancelled (rather than returning.)
+						// This probably wasn't intended - they should clean up
+						// and return null.
+						Debug.LogWarning($"Dialogue presenter {view.name} threw an {nameof(OperationCanceledException)} when running its {nameof(DialoguePresenterBase.RunLineAsync)} method. Dialogue presenters should not throw this exception; instead, clean up any needed user-facing content, and return.", view);
+					}
+					catch (Exception e)
+					{
+						// If a dialogue presenter throws an exception, we need
+						// to return, because the dialogue runner is waiting for
+						// our task to complete. We'll log the exception so that
+						// it's not lost, and exit here.
+						Debug.LogException(e, view);
+					}
+				}
+
+				pendingTasks.Add(RunLineAndInvokeCompletion(presenter, localisedLine, token));
+			}
+
+			// Wait for all line view tasks to finish delivering the line.
+			var waitForAllLines = YarnTask.WhenAll(pendingTasks);
+			if (!waitForAllLines.IsCompletedSuccessfully())
+			{
+				await waitForAllLines;
+			}
 		}
 
 		public void Resume()
@@ -136,51 +91,19 @@ namespace ToolkitEngine.Dialogue
 			if (!m_waitingForSignal)
 			{
 				m_skipWaiting = true;
-				UserRequestedViewAdvancement();
 			}
 
 			m_waitingForSignal = false;
 		}
 
-		/// <inheritdoc/>
-		public override void UserRequestedViewAdvancement()
+		public override YarnTask OnDialogueStartedAsync()
 		{
-			if (m_currentLine == null)
-				return;
-
-			foreach (var view in m_dialogueViews)
-			{
-				if (view == null)
-					continue;
-
-				view.UserRequestedViewAdvancement();
-			}
-
-			requestInterrupt?.Invoke();
+			return YarnTask.CompletedTask;
 		}
 
-		/// <inheritdoc />
-		/// <remarks>
-		/// If a line is still being shown dismisses it.
-		/// </remarks>
-		public override void DialogueComplete()
+		public override YarnTask OnDialogueCompleteAsync()
 		{
-			foreach (var view in m_dialogueViews)
-			{
-				if (view == null)
-					continue;
-
-				view.DialogueComplete();
-			}
-		}
-
-		#endregion
-
-		#region Structures
-
-		private class ActionInfo
-		{
-			public int count;
+			return YarnTask.CompletedTask;
 		}
 
 		#endregion

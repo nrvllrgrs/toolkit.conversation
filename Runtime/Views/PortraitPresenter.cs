@@ -1,6 +1,6 @@
-using ToolkitEngine.Dialogue;
+using Yarn.Unity;
 
-namespace Yarn.Unity
+namespace ToolkitEngine.Dialogue
 {
 	public interface IPortraitPresenter
 	{
@@ -13,9 +13,9 @@ namespace Yarn.Unity
 
 		public override YarnTask RunLineAsync(LocalizedLine line, LineCancellationToken token)
 		{
-			if (DialogueManager.CastInstance.TryGetDialogueSpeakerTypeByCharacterName(line.CharacterName, out var speakerType))
+			if (DialogueManager.TryGetDialogueSpeakerTypeByCharacterName(line.CharacterName, out var speakerType))
 			{
-				PortraitManager.CastInstance.SetPortrait(speakerType, line, this);
+				PortraitManager.SetPortrait(speakerType, line, this);
 			}
 			return YarnTask.CompletedTask;
 		}
@@ -27,7 +27,7 @@ namespace Yarn.Unity
 
 		public override YarnTask OnDialogueCompleteAsync()
 		{
-			PortraitManager.CastInstance.HideAllPortraits();
+			PortraitManager.HideAllPortraits();
 			return YarnTask.CompletedTask;
 		}
 

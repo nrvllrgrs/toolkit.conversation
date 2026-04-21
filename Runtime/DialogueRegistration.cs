@@ -38,12 +38,17 @@ namespace ToolkitEngine.Dialogue
 
 		#region Methods
 
+		/// <summary>
+		/// Indicates whether DialogueType matches DialogueRegistration
+		/// </summary>
+		/// <param name="dialogueType"></param>
+		/// <returns></returns>
 		public bool IsValid(DialogueType dialogueType)
 		{
 			switch (mode)
 			{
 				case Mode.Category:
-					return DialogueManager.CastInstance.TryGetDialogueCategory(dialogueType, out var category)
+					return DialogueManager.TryGetDialogueCategory(dialogueType, out var category)
 						&& Equals(category, m_dialogueCategory);
 
 				case Mode.Type:

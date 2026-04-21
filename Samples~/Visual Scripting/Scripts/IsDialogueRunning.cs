@@ -35,8 +35,8 @@ namespace ToolkitEngine.Dialogue.VisualScripting
 			running = ValueOutput(nameof(running), (flow) =>
 			{
 				return anyDialogue
-					? DialogueManager.CastInstance.isAnyDialogueRunning
-					: DialogueManager.CastInstance.IsDialogueCategoryRunning(flow.GetValue<DialogueCategory>(dialogueCategory));
+					? DialogueManager.isAnyDialogueRunning
+					: DialogueManager.IsDialogueCategoryRunning(flow.GetValue<DialogueCategory>(dialogueCategory));
 			});
 
 			if (!anyDialogue)

@@ -269,7 +269,7 @@ namespace ToolkitEditor.Dialogue
 		#endregion
 	}
 
-public struct YarnProjectTableEntry
+	public struct YarnProjectTableEntry
 	{
 		public YarnProject project;
 		public StringTableEntry entry;

@@ -43,7 +43,7 @@ namespace ToolkitEngine.Dialogue
 		{
 			if (m_lineText != null)
 			{
-				var color = DialogueManager.CastInstance.TryGetDialogueSpeakerTypeByCharacterName(dialogueLine.CharacterName, out var speakerType)
+				var color = DialogueManager.TryGetDialogueSpeakerTypeByCharacterName(dialogueLine.CharacterName, out var speakerType)
 					? speakerType.color
 					: m_defaultColor;
 

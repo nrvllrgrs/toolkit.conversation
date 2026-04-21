@@ -24,47 +24,47 @@ namespace ToolkitEngine.Dialogue
 
 		#region Events
 
-		public event EventHandler<bool> SkippableChanged;
+		public static event Action<bool> SkippableChanged;
 
 		#endregion
 
 		#region Properties
 
-		public string skipDestination
+		public static string skipDestination
 		{
-			get => m_skipDestination;
+			get => CastInstance.m_skipDestination;
 			private set
 			{
 				// No change, skip
-				if (m_skipDestination == value)
+				if (CastInstance.m_skipDestination == value)
 					return;
 
-				m_skipDestination = value;
-				skippable = !string.IsNullOrWhiteSpace(m_skipDestination);
+				CastInstance.m_skipDestination = value;
+				skippable = !string.IsNullOrWhiteSpace(CastInstance.m_skipDestination);
 			}
 		}
 
-		public bool skippable
+		public static bool skippable
 		{
-			get => m_skippable;
+			get => CastInstance.m_skippable;
 			private set
 			{
 				// No change, skip
-				if (m_skippable == value)
+				if (CastInstance.m_skippable == value)
 					return;
 
 				bool wasSkippable = skippable;
-				m_skippable = value;
+				CastInstance.m_skippable = value;
 
 				if (wasSkippable != skippable)
 				{
-					SkippableChanged?.Invoke(this, !wasSkippable);
+					SkippableChanged?.Invoke(!wasSkippable);
 				}
 			}
 		}
 
-		public float remainingTime => m_remainingTime;
-		public float normalizedRemainingTime => m_remainingTime / m_timeout;
+		public static float remainingTime => CastInstance.m_remainingTime;
+		public static float normalizedRemainingTime => CastInstance.m_remainingTime / CastInstance.m_timeout;
 
 		#endregion
 
@@ -72,7 +72,7 @@ namespace ToolkitEngine.Dialogue
 
 		protected override void Initialize()
 		{
-			DialogueManager.CastInstance.DialogueStarted += DialogueManager_DialogueStarted;
+			DialogueManager.DialogueStarted += DialogueManager_DialogueStarted;
 			m_animateStateHash = Animator.StringToHash(Config.animateStateName);
 		}
 
@@ -80,35 +80,35 @@ namespace ToolkitEngine.Dialogue
 		{
 			if (DialogueManager.Exists)
 			{
-				DialogueManager.CastInstance.DialogueStarted -= DialogueManager_DialogueStarted;
+				DialogueManager.DialogueStarted -= DialogueManager_DialogueStarted;
 			}
 		}
 
-		public void Skip()
+		public static void Skip()
 		{
-			if (!skippable || m_cinematicControl == null)
+			if (!skippable || CastInstance.m_cinematicControl == null)
 				return;
 
-			m_cinematicControl.Stop(true);
-			if (!string.IsNullOrWhiteSpace(m_skipDestination))
+			CastInstance.m_cinematicControl.Stop(true);
+			if (!string.IsNullOrWhiteSpace(CastInstance.m_skipDestination))
 			{
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-				m_cinematicControl.Play(skipDestination);
+				CastInstance.m_cinematicControl.Play(skipDestination);
 #pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 				skipDestination = null;
 			}
 		}
 
-		public void Continue()
+		public static void Continue()
 		{
-			m_waiting = false;
+			CastInstance.m_waiting = false;
 		}
 
 		#endregion
 
 		#region Callbacks
 
-		private void DialogueManager_DialogueStarted(object sender, DialogueEventArgs e)
+		private static void DialogueManager_DialogueStarted(DialogueEventArgs e)
 		{
 			if (Config == null)
 				return;
@@ -117,7 +117,7 @@ namespace ToolkitEngine.Dialogue
 				return;
 
 			// Store DialogueRunnerControl associated with "cinematic" DialogueType
-			m_cinematicControl = e.control;
+			CastInstance.m_cinematicControl = e.control;
 		}
 
 		#endregion
@@ -128,9 +128,9 @@ namespace ToolkitEngine.Dialogue
 		public static void SetupSkipAndEnd()
 		{
 			CleanupSkip();
-			CastInstance.skippable = true;
+			skippable = true;
 
-			DialogueManager.CastInstance.DialogueCompleted += Skip_DialogueCompleted;
+			DialogueManager.DialogueCompleted += Skip_DialogueCompleted;
 		}
 
 		[YarnCommand("skip")]
@@ -139,22 +139,22 @@ namespace ToolkitEngine.Dialogue
 			CleanupSkip();
 
 			// Store destination of skipping
-			CastInstance.skipDestination = destinationNode;
+			skipDestination = destinationNode;
 
-			DialogueManager.CastInstance.NodeStarted += Skip_NodeStarted;
-			DialogueManager.CastInstance.DialogueCompleted += Skip_DialogueCompleted;
+			DialogueManager.NodeStarted += Skip_NodeStarted;
+			DialogueManager.DialogueCompleted += Skip_DialogueCompleted;
 		}
 
-		private static void Skip_NodeStarted(object sender, DialogueEventArgs e)
+		private static void Skip_NodeStarted(DialogueEventArgs e)
 		{
 			if (!Equals(e.control, CastInstance.m_cinematicControl)
-				|| !Equals(e.nodeName, CastInstance.skipDestination))
+				|| !Equals(e.nodeName, skipDestination))
 				return;
 
 			CleanupSkip();
 		}
 
-		private static void Skip_DialogueCompleted(object sender, DialogueEventArgs e)
+		private static void Skip_DialogueCompleted(DialogueEventArgs e)
 		{
 			// If Cinematic Dialogue ends before reaching skip node, cleanup
 			if (!Equals(e.control, CastInstance.m_cinematicControl))
@@ -166,11 +166,11 @@ namespace ToolkitEngine.Dialogue
 		private static void CleanupSkip()
 		{
 			// Clear destination...cannot skip anymore
-			CastInstance.skipDestination = null;
+			skipDestination = null;
 
 			// Stop watching events
-			DialogueManager.CastInstance.NodeStarted -= Skip_NodeStarted;
-			DialogueManager.CastInstance.DialogueCompleted -= Skip_DialogueCompleted;
+			DialogueManager.NodeStarted -= Skip_NodeStarted;
+			DialogueManager.DialogueCompleted -= Skip_DialogueCompleted;
 		}
 
 		#endregion
@@ -221,7 +221,7 @@ namespace ToolkitEngine.Dialogue
 		[YarnCommand("animate")]
 		public static void Animate(string characterName, string animationKey)
 		{
-			Animate(characterName, animationKey, CastInstance.Config.animateStateName, CastInstance.m_animateStateHash);
+			Animate(characterName, animationKey, Config.animateStateName, CastInstance.m_animateStateHash);
 		}
 
 		[YarnCommand("customAnimate")]
@@ -232,8 +232,8 @@ namespace ToolkitEngine.Dialogue
 
 		public static void Animate(string characterName, string animationKey, string animStateName, int animStateHash)
 		{
-			if (DialogueManager.CastInstance.TryGetDialogueSpeakerTypeByCharacterName(characterName, out var speakerType)
-			   && DialogueManager.CastInstance.TryGetDialogueSpeakers(speakerType, out var speakers))
+			if (DialogueManager.TryGetDialogueSpeakerTypeByCharacterName(characterName, out var speakerType)
+			   && DialogueManager.TryGetDialogueSpeakers(speakerType, out var speakers))
 			{
 				Animate(speakerType, speakers, animationKey, animStateName, animStateHash);
 			}
@@ -241,12 +241,12 @@ namespace ToolkitEngine.Dialogue
 
 		public static void Animate(DialogueSpeakerType speakerType, HashSet<DialogueSpeaker> speakers, string animationKey)
 		{
-			Animate(speakerType, speakers, animationKey, CastInstance.Config.animateStateName, CastInstance.m_animateStateHash);
+			Animate(speakerType, speakers, animationKey, Config.animateStateName, CastInstance.m_animateStateHash);
 		}
 
 		public static void Animate(DialogueSpeakerType speakerType, HashSet<DialogueSpeaker> speakers, string animationKey, string animStateName)
 		{
-			Animate(speakerType, speakers, animationKey, CastInstance.Config.animateStateName, Animator.StringToHash(animStateName));
+			Animate(speakerType, speakers, animationKey, Config.animateStateName, Animator.StringToHash(animStateName));
 		}
 
 		public static void Animate(DialogueSpeakerType speakerType, HashSet<DialogueSpeaker> speakers, string animationKey, string animStateName, int animStateHash)

@@ -8,7 +8,7 @@ namespace ToolkitEngine.Dialogue.VisualScripting
     {
 		#region Properties
 
-		public override Func<DialogueType, YarnProject, string, Action<GameObject>, bool> trigger => DialogueManager.CastInstance.Play;
+		public override Func<DialogueType, YarnProject, string, Action<GameObject>, bool> trigger => DialogueManager.Play;
 
 		#endregion
 	}

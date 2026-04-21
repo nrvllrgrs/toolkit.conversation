@@ -2,12 +2,13 @@
     "name": "ToolkitEngine.Dialogue.VisualScripting",
     "rootNamespace": "",
     "references": [
-        "GUID:34aa492b82754644eac2f903cd496268",
-        "GUID:21b0c8d1703a94250bfac916590cea4f",
-        "GUID:ea715009a4efd4c6cbc85be3ae097dd3",
-        "GUID:0b2b191acd5ecdb4da1dd2e73cbe1d45",
-        "GUID:84a91b4eb9e5b934d8e2e55fcedeba20",
-        "GUID:3cb24a45c22d8e045a5ef8a019b8a1b8"
+        "YarnSpinner.Unity",
+        "Unity.VisualScripting.Core",
+        "Unity.VisualScripting.Flow",
+        "ToolkitEngine",
+        "ToolkitEngine.VisualScripting",
+        "ToolkitEngine.Dialogue",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

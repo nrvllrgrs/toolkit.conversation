@@ -45,7 +45,7 @@ namespace ToolkitEngine.Dialogue.VisualScripting
 		{
 			var node = flow.GetValue<YarnNode>(yarnNode);
 
-			NudgeManager.CastInstance.Set(
+			NudgeManager.Set(
 				flow.GetValue<NudgeType>(nudgeType),
 				node.project,
 				node.name,

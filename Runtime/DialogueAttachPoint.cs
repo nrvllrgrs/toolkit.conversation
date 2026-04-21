@@ -23,26 +23,26 @@ namespace ToolkitEngine.Dialogue
 
 		private void OnEnable()
 		{
-			DialogueManager.CastInstance.DialogueStarted += DialogueManager_DialogueStarted;
+			DialogueManager.DialogueStarted += DialogueManager_DialogueStarted;
 		}
 
 		private void OnDisable()
 		{
 			if (DialogueManager.Exists)
 			{
-				DialogueManager.CastInstance.DialogueStarted -= DialogueManager_DialogueStarted;
+				DialogueManager.DialogueStarted -= DialogueManager_DialogueStarted;
 			}
 		}
 
-		private void DialogueManager_DialogueStarted(object sender, DialogueEventArgs e)
+		private void DialogueManager_DialogueStarted(DialogueEventArgs e)
 		{
 			// Not matching DialogueType, skip
 			if (!m_registration.IsValid(e.type))
 				return;
 
-			DialogueManager.CastInstance.DialogueStarted -= DialogueManager_DialogueStarted;
+			DialogueManager.DialogueStarted -= DialogueManager_DialogueStarted;
 
-			if (DialogueManager.CastInstance.TryGetDialogueRunnerSettings(m_registration, out var settings))
+			if (DialogueManager.TryGetDialogueRunnerSettings(m_registration, out var settings))
 			{
 				m_attachPoint.Attach(settings.transform);
 			}

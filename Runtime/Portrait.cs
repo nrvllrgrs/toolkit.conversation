@@ -1,7 +1,8 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.Assertions;
-using UnityEngine.UI;
+using ToolkitEngine.Rendering;
 
 namespace ToolkitEngine.Dialogue
 {
@@ -10,17 +11,37 @@ namespace ToolkitEngine.Dialogue
 		#region Fields
 
 		[SerializeField]
-		private Image m_image;
+		protected InterfaceReference<ISpriteDisplay> m_display;
 
 		[SerializeField]
-		private List<DialogueSpeakerType> m_speakerTypes;
+		[Tooltip("If true, only the speaker types listed are used by this portrait. If false, all speaker types defined in Config are used except those listed.")]
+		protected bool m_isAllowList = true;
+
+		[SerializeField]
+		protected List<DialogueSpeakerType> m_speakerTypes;
+
+		private IEnumerable<DialogueSpeakerType> m_cachedList = null;
 
 		#endregion
 
 		#region Properties
 
-		public Image image => m_image;
-		public IEnumerable<DialogueSpeakerType> speakerTypes => m_speakerTypes;
+		public ISpriteDisplay display => m_display.Value;
+
+		public IEnumerable<DialogueSpeakerType> speakerTypes
+		{
+			get
+			{
+				if (m_isAllowList)
+					return m_speakerTypes;
+
+				if (m_cachedList == null)
+				{
+					m_cachedList = DialogueManager.Config.speakers.Except(m_speakerTypes);
+				}
+				return m_cachedList;
+			}
+		}
 
 		#endregion
 
@@ -28,21 +49,21 @@ namespace ToolkitEngine.Dialogue
 
 		private void Awake()
 		{
-			if (m_image == null)
+			if (m_display.Value == null)
 			{
-				m_image = GetComponent<Image>();
+				m_display.Value = GetComponent<ISpriteDisplay>();
 			}
-			Assert.IsNotNull(m_image);
+			Assert.IsNotNull(m_display);
 		}
 
 		private void OnEnable()
 		{
-			PortraitManager.CastInstance.Register(this);
+			PortraitManager.Register(this);
 		}
 
 		private void OnDisable()
 		{
-			PortraitManager.CastInstance.Unregister(this);
+			PortraitManager.Unregister(this);
 		}
 
 		#endregion
